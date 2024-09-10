@@ -2,12 +2,12 @@
   "name": "puppeteer-demo",
   "version": "1.0.0",
   "description": "Puppeteer demo application",
-  "main": "index.js",
-  "type": "module",
+  "main": "dist/index.js",
+  "type": "commonjs",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
   "author": "",
   "license": "ISC",
@@ -15,6 +15,10 @@
     "puppeteer": "^23.3.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "@types/node": "10.12.18",
+    "@types/puppeteer": "1.11.1",
+    "nodemon": "^3.1.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
   }
 }
