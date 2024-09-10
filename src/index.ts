@@ -1,7 +1,4 @@
 import puppeteer from "puppeteer";
-function freeze(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 async function main() {
   const browser = await puppeteer.launch({ headless: false });
@@ -9,17 +6,26 @@ async function main() {
   await page.goto("https://www.instagram.com/nodejs.tech/", {
     waitUntil: "networkidle2",
   });
-  try {
-    // Wait for the <h2> element to appear
-    await page.waitForSelector("h2", { timeout: 10000 }); // Wait for up to 10 seconds
 
-    // Extract the text content of the <h2> element
+  try {
+    await page.waitForSelector("section > div > div > h2", { timeout: 10000 });
+
     const username = await page.evaluate(() => {
-      const element = document.querySelector("h2");
+      const element = document.querySelector(
+        "section > div > div > h2"
+      ) as HTMLElement;
       return element ? element.textContent : null;
     });
 
+    const profilePic = await page.evaluate(() => {
+      const element = document.querySelector(
+        "header > div > div> span > img"
+      ) as HTMLImageElement;
+      return element ? element.src : null;
+    });
+
     console.log("Username:", username);
+    console.log("Profile Picture:", profilePic);
   } catch (error) {
     console.error("Error:", error);
   } finally {
