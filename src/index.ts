@@ -1,10 +1,14 @@
-import puppeteer from "puppeteer-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import { connect } from "puppeteer-real-browser";
 
-puppeteer.use(StealthPlugin());
-puppeteer.launch({ headless: false, slowMo: 50 }).then(async (browser) => {
-  const page = await browser.newPage();
-
+connect({
+  headless: false,
+  // proxy:{
+  //     host:'<proxy-host>',
+  //     port:'<proxy-port>',
+  //     username?:'<proxy-username>',
+  //     password?:'<proxy-password>'
+  // }
+}).then(async ({ page, browser }) => {
   try {
     await page.goto("https://www.instagram.com/nodejs.tech/", {
       waitUntil: "networkidle2",
@@ -21,7 +25,7 @@ puppeteer.launch({ headless: false, slowMo: 50 }).then(async (browser) => {
       return element ? element.textContent : null;
     });
 
-    const profilePic = await page.evaluate(() => {
+    const picture = await page.evaluate(() => {
       const element = document.querySelector(
         "header > div > div > span > img"
       ) as HTMLImageElement;
@@ -43,9 +47,9 @@ puppeteer.launch({ headless: false, slowMo: 50 }).then(async (browser) => {
     //   likes.push(like);
     // }
 
-    // console.log("Likes:", likes);
     console.log("Username:", username);
-    console.log("Profile Picture:", profilePic);
+    console.log("Profile Picture:", picture);
+    // console.log("Likes:", likes);
   } catch (error) {
     console.error("Error:", error);
   } finally {
