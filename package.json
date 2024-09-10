@@ -3,12 +3,18 @@
   "version": "1.0.0",
   "description": "Puppeteer demo application",
   "main": "index.js",
+  "type": "module",
   "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "puppeteer": "^23.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
   }
 }
