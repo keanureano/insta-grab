@@ -1,5 +1,11 @@
 import { connect } from "puppeteer-real-browser";
 
+const delay = (timeout: number) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, timeout);
+  });
+};
+
 connect({
   headless: false,
   // proxy:{
@@ -32,24 +38,39 @@ connect({
       return element ? element.src : null;
     });
 
-    // const posts = await page.$$("article > div > div > a");
+    const showMoreButtonExists = async () => {
+      const element = await page.$("main > div > div > div > div > button");
+      return !!element;
+    };
 
-    // const likes = [];
+    while (await showMoreButtonExists()) {
+      await page.click("main > div > div > div > div > button");
+      delay(1000);
+    }
 
-    // for (const post in posts) {
-    //   await page.hover(post);
+    delay(1000);
 
-    //   const like = await page.evaluate(() => {
-    //     const element = document.querySelector("a > div > ul > li > span");
-    //     return element ? element.textContent : null;
-    //   });
+    const posts = await page.$$("article > div div > a");
 
-    //   likes.push(like);
-    // }
+    const likes = [];
+    const comments = [];
+
+    for (const post of posts) {
+      await post.hover();
+
+      const [like, comment] = await post.evaluate(() => {
+        const elements = document.querySelectorAll("a > div > ul > li > span");
+        return [elements[0].textContent, elements[2].textContent];
+      });
+
+      likes.push(like);
+      comments.push(comment);
+    }
 
     console.log("Username:", username);
     console.log("Profile Picture:", picture);
-    // console.log("Likes:", likes);
+    console.log("Likes:", likes.length);
+    console.log("Comments:", comments.length);
   } catch (error) {
     console.error("Error:", error);
   } finally {
