@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 connect({
-  headless: false,
+  headless: process.env.DEBUG_MODE !== "true",
   // proxy: {
   //   host: '<proxy-host>',
   //   port: '<proxy-port>',
@@ -14,26 +14,27 @@ connect({
 }).then(async ({ page, browser }) => {
   try {
     await loginToInstagram(page);
-
-    await goToInstagramAccount(page, "facebook");
+    await goToInstagramAccount(page, process.env.IG_PAGE || "");
 
     const username = await getUsername(page);
     const picture = await getProfilePicture(page);
+    const followers = await getFollowers(page);
 
     await loadAllPostsByScrolling(page);
 
     const { likes, comments } = await getLikesAndComments(page);
 
-    console.log("Results:");
     console.log(`Username: ${username}`);
     console.log(`Profile Picture URL: ${picture}`);
+    console.log(`Followers: ${followers}`);
     console.log(`Likes: ${likes}`);
     console.log(`Comments: ${comments}`);
   } catch (error) {
     console.error("An error occurred:", error);
   } finally {
-    // Optionally close the browser here
-    // await browser.close();
+    if (process.env.DEBUG_MODE !== "true") {
+      await browser.close();
+    }
     console.log("Finished execution.");
   }
 });
@@ -79,8 +80,47 @@ const getProfilePicture = async (page: PageWithCursor) => {
     const element = document.querySelector(
       "img[alt*='profile picture']"
     ) as HTMLImageElement;
-    return element ? element.src : null;
+    const profilePicture = element?.src;
+
+    if (!profilePicture) {
+      throw new Error("Failed to fetch profile picture.");
+    }
+
+    return profilePicture;
   });
+};
+
+const formatNumber = (text: string | null): number => {
+  if (!text) return 0;
+
+  text = text.replace(/,/g, "").trim();
+
+  let value = parseFloat(text);
+
+  if (text.endsWith("K")) {
+    value *= 1e3;
+  } else if (text.endsWith("M")) {
+    value *= 1e6;
+  } else if (text.endsWith("B")) {
+    value *= 1e9;
+  }
+
+  return parseInt(value.toString());
+};
+
+const getFollowers = async (page: PageWithCursor) => {
+  console.log("Fetching followers...");
+  const followers = await page.evaluate(() => {
+    const element = document.querySelector(
+      "a[href='/instagram/followers/'] > span > span"
+    ) as HTMLElement;
+    const followers = element?.textContent;
+    if (!followers) {
+      throw new Error("Failed to fetch followers.");
+    }
+    return followers;
+  });
+  return formatNumber(followers);
 };
 
 const delay = (timeout: number) =>
@@ -88,13 +128,13 @@ const delay = (timeout: number) =>
 
 const loadAllPostsByScrolling = async (
   page: PageWithCursor,
-  maxScrolls: number = 1
+  maxScrolls: number = 2
 ) => {
   let scrollCount = 0;
   let lastHeight = 0;
 
   while (scrollCount < maxScrolls) {
-    console.log(`Scrolled down to load posts ${scrollCount} times`);
+    console.log(`Scrolled down to load posts ${scrollCount + 1} times`);
 
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await delay(2000); // Wait for new content to load
@@ -115,25 +155,35 @@ const loadAllPostsByScrolling = async (
 
 const getLikesAndComments = async (page: PageWithCursor) => {
   console.log("Fetching posts...");
-  const posts = await page.$$("main > div > div:nth-child(3) > div div > a");
+
+  let posts = await page.$$("main > div > div:nth-child(3) > div div > a");
   console.log(
     `${posts.length} Posts fetched. Processing likes and comments...`
   );
-  const likes: string[] = [];
-  const comments: string[] = [];
+  const likes: number[] = [];
+  const comments: number[] = [];
 
-  for (const post of posts) {
-    await page.evaluate((element) => element.scrollIntoView(), post);
-
+  for (let i = 0; i < posts.length; i++) {
+    posts = await page.$$("main > div > div:nth-child(3) > div div > a");
+    const post = posts[i];
     await post.hover();
+
+    await delay(10);
 
     const [like, comment] = await post.evaluate((post) => {
       const elements = post.querySelectorAll("div > ul > li > span");
-      return [elements[0]?.textContent || "", elements[2]?.textContent || ""];
+      const like = elements[0]?.textContent;
+      const comment = elements[2]?.textContent;
+
+      if (!like || !comment) {
+        throw new Error("Failed to fetch likes and comments.");
+      }
+
+      return [like, comment];
     });
 
-    likes.push(like);
-    comments.push(comment);
+    likes.push(formatNumber(like));
+    comments.push(formatNumber(comment));
   }
 
   return { likes, comments };
