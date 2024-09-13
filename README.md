@@ -13,13 +13,13 @@
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/instasleuth.git
+   git clone https://github.com/yourusername/insta-grab.git
    ```
 
 2. Navigate to the project directory:
 
    ```bash
-   cd instasleuth
+   cd insta-grab
    ```
 
 3. Install the required packages:
